@@ -100,8 +100,12 @@ throttle(connection3, async () => {
     console.log("Hello, world5!");
 }, null, 1);
 
-throttle(connection3, async () => {
+const ret = throttle(connection3, async () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log("Hello, world6!");
+    return "Hello, I am returned!"
 }, null, 1); // Exceeds the worker capacity, so it will be queued.
 
+ret.then((value) => {
+    console.log(`This was returned: ${value}`);
+});

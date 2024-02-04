@@ -27,7 +27,8 @@ export const job = (fn: (arg?: any) => Promise<any>, niceness: number = 0, expec
 
         */
         tracker.add(expectedCalls);
-        await fn(arg);
+        const res = await fn(arg);
+        return res;
     }
     return {
         doJob: async () => {
