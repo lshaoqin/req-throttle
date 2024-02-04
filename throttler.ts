@@ -42,6 +42,8 @@ export function throttle<T, U> (
 const platformManagers: {[platformName: string]: PlatformManager} = {};
 const wm = workerManager(platformManagers);
 
+// Tests
+
 const w1 = worker("worker1", wm);
 const w2 = worker("worker2", wm);
 const w3 = worker("worker3", wm);
@@ -52,8 +54,6 @@ wm.add(w3);
 wm.add(w4);
 wm.check();
 
-
-// Tests
 const connection: Connection = {
     platform: "platform1",
     connection: "connection1",
