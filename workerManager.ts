@@ -5,39 +5,30 @@ import { RequestTracker } from "./requestTracker";
 interface Worker {
     name: string;
     doJob: (job: Job) => void;
+    findJob: () => void;
     manager: WorkerManager;
 }
 
-interface WorkerManager {
+export interface WorkerManager {
     workers: Worker[];
     add: (worker: Worker) => void;
     assign: () => void;
     platformManager: {[platformName: string]: PlatformManager};
+    check: () => void;
 }
 
-const worker = (name: string, manager: WorkerManager) : Worker => {
-    function track(tracker: RequestTracker, fn: (arg?: any) => Promise<any>, arg?: any) {
-        /*
-
-        Update the corresponding tracker every time a request to the platform is made.
-        This can be done by having fn take in the tracker as an argument and updating it
-        within the function evry time a request is made.
-        Alternatively, the tracker can be updated by the router functions which make the requests.
-
-        Here, we simulate that the function fn is making only one request to the platform.
-
-        */
-        fn(arg);
-        tracker.add(1);
-    }
+export const worker = (name: string, manager: WorkerManager) : Worker => {
     return {
         name: name,
         async doJob(job: Job) {
-            console.log("Job started for worker one");
-            track(job.tracker, job.fn, job.arg);
-            console.log("Job finished for worker one");
+            console.log(`Job started for ${name}`);
+            await job.doJob();
+            console.log(`Job finished for ${name}`);
+            this.findJob();
+        },
+        async findJob() {
             manager.add(this); // Add the worker back to the pool
-            manager.assign(); // Ask for a new job!
+            manager.assign(); // Ask for a new job
         },
         manager: manager,
     }
@@ -46,6 +37,7 @@ const worker = (name: string, manager: WorkerManager) : Worker => {
 export const workerManager = (platformManagers: {[platformName: string]: PlatformManager}) : WorkerManager => {
     const workers: Worker[] = [];
     let lock = false;
+
     return {
         workers: workers,
         add(worker: Worker) {
@@ -106,6 +98,16 @@ export const workerManager = (platformManagers: {[platformName: string]: Platfor
             }
             lock = false;
         },
+        check() { 
+        // Check for new jobs every 10 seconds because assign() wouldn't be called if all workers are idle
+        // Another potential way is to check every time a platform allows more requests, 
+        // but that would increase coupling and require many more calls of check().
+            setTimeout(() => {
+                this.assign();
+                this.check();
+            }, 10000);
+        },
         platformManager: platformManagers,
+
     }
 }

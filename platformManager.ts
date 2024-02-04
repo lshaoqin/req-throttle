@@ -38,7 +38,8 @@ export const platformManager = (platform: string, maxRequests: number, timeWindo
             }
             lock = true;
             const job = pq.peek();
-            if (job == null || job.expectedCalls > rt.leftover()) {
+            if (job == null || job.expectedCalls > rt.leftover()) { 
+                // If the highest priority job has more expected calls than the leftover requests, wait until there are enough requests
                 return null;
             }
             lock = false;

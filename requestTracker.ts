@@ -25,6 +25,6 @@ export const requestTracker = (maxRequestCount: number, windowSeconds: number): 
             }, windowSeconds * 1000);
             lock = false;
         },
-        leftover: () => maxRequestCount - requestCount
+        leftover: () => maxRequestCount - requestCount,
     }
 }
