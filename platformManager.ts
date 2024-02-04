@@ -6,8 +6,8 @@ export interface PlatformManager {
     platform: string;
     requestTracker: RequestTracker;
     add: (job: Job) => void;
-    poll: () => Job | null;
-    pop: () => Job | null;
+    poll: () => Promise<Job | null>;
+    pop: () => Promise<Job | null>;
 }
 
 export const platformManager = (platform: string, maxRequests: number, timeWindow: number): PlatformManager => {
@@ -24,38 +24,49 @@ export const platformManager = (platform: string, maxRequests: number, timeWindo
                 setTimeout(() => {
                     this.add(job);
                 }, 1000);
+                return;
             }
             lock = true;
             pq.insert(job, job.niceness);
             lock = false;
         },
         poll() {
-            if (lock) {
-                // Try again after a while
-                setTimeout(() => {
-                    return this.poll();
-                }, 1000);
-            }
-            lock = true;
-            const job = pq.peek();
-            if (job == null || job.expectedCalls > rt.leftover()) { 
-                // If the highest priority job has more expected calls than the leftover requests, wait until there are enough requests
-                return null;
-            }
-            lock = false;
-            return job;
+            return new Promise((resolve, reject) => {
+                const tryPoll = () => {
+                    if (lock) {
+                        // Try again after a while
+                        setTimeout(tryPoll, 1000);
+                    } else {
+                        lock = true;
+                        const job = pq.peek();
+                        lock = false;
+                        if (job == null || job.expectedCalls > rt.leftover()) { 
+                            // If the highest priority job has more expected calls than the leftover requests, wait until there are enough requests
+                            resolve(null);
+                        } else {
+                            lock = false;
+                            resolve(job);
+                        }
+                    }
+                };
+                tryPoll();
+            });
         },
         pop() {
-            if (lock) {
-                // Try again after a while
-                setTimeout(() => {
-                    return this.pop();
-                }, 1000);
-            }
-            lock = true;
-            const job = pq.pop();   
-            lock = false;
-            return job;
-        }
+            return new Promise((resolve, reject) => {
+                const tryPop = () => {
+                    if (lock) {
+                        // Try again after a while
+                        setTimeout(tryPop, 1000);
+                    } else {
+                        lock = true;
+                        const job = pq.pop();
+                        lock = false;
+                        resolve(job);
+                    }
+                };
+                tryPop();
+            });
+        },
     }
 }

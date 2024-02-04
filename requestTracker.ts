@@ -17,6 +17,7 @@ export const requestTracker = (maxRequestCount: number, windowSeconds: number): 
                 setTimeout(() => {
                     this.add(num);
                 }, 1000);
+                return;
             }
             lock = true;
             requestCount += num;

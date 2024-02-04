@@ -1,6 +1,5 @@
 import { Job } from "./job";
 import { PlatformManager } from "./platformManager";
-import { RequestTracker } from "./requestTracker";
 
 interface Worker {
     name: string;
@@ -46,57 +45,71 @@ export const workerManager = (platformManagers: {[platformName: string]: Platfor
                 setTimeout(() => {
                     this.add(worker);
                 }, 1000);
+                return;
             }
             lock = true;
             workers.push(worker);
             lock = false;
         },
-        assign() {
+        async assign() {
             if (lock) {
                 // Try again after a while
                 setTimeout(() => {
                     this.assign();
                 }, 1000);
+                return;
             }
 
             lock = true;
-            // Get the highest priority job 
-            let score = Infinity;
-            let dateAdded = new Date();
-            let platformManager: PlatformManager | null = null;
-
-            for (const pm of Object.values(platformManagers)) {
-                const j = pm.poll();
-                if (j != null && j.niceness < score) {
-                    score = j.niceness;
-                    dateAdded = j.addedTime;
-                    platformManager = pm;
+            
+            try {
+                if (workers.length == 0) {
+                    console.log("No workers available at the moment.")
+                    return;
                 }
-                if (j?.niceness == score && j.addedTime < dateAdded) { // If two jobs have the same niceness, the one added first is chosen
-                    dateAdded = j.addedTime;
-                    platformManager = pm;
+                // Get the highest priority job 
+                let score = Infinity;
+                let dateAdded = new Date();
+                let platformManager: PlatformManager | null = null;
+
+                const pollPromises = Object.values(platformManagers).map(async (pm: PlatformManager): Promise<[Job|null, PlatformManager]> => [await pm.poll(), pm]);
+                const jobs = await Promise.all(pollPromises);
+
+                for (const [j, pm] of jobs) {
+                    if (j == null) {
+                        continue;
+                    }
+                    if (j.niceness < score) {
+                        score = j.niceness;
+                        dateAdded = j.addedTime;
+                        platformManager = pm;
+                    }
+                    else if (j?.niceness == score && j.addedTime < dateAdded) { // If two jobs have the same niceness, the one added first is chosen
+                        dateAdded = j.addedTime;
+                        platformManager = pm;
+                    }
                 }
-            }
+                
 
-            if (platformManager == null) {
-                console.log("No valid job to assign at the moment.")
+                if (platformManager == null) {
+                    console.log("No valid job to assign at the moment.")
+                    return;
+                }
+
+                const job = await platformManager.pop();
+
+                if (job == null) {
+                    console.log("An error may have occurred..")
+                    return;
+                }
+                // Assign the job to the worker
+                const worker = workers.shift();
+                if (worker) {
+                    worker.doJob(job);
+                }
+            } finally {
                 lock = false;
-                return;
             }
-
-            const job = platformManager.pop();
-
-            if (job == null) {
-                console.log("An error may have occurred..")
-                lock = false;
-                return;
-            }
-            // Assign the job to the worker
-            const worker = workers.shift();
-            if (worker) {
-                worker.doJob(job);
-            }
-            lock = false;
         },
         check() { 
         // Check for new jobs every 10 seconds because assign() wouldn't be called if all workers are idle

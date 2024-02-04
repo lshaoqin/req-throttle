@@ -93,7 +93,7 @@ throttle(connection2, async () => {
 throttle(connection2, async () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log("Hello, world4!");
-}, null, 3); // Exceeds the rate limit, so it will be queued.
+}, null, 3); // Cannot complete the whole activity without exceeding the rate limit, so it will be queued.
 
 throttle(connection3, async () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -104,3 +104,4 @@ throttle(connection3, async () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log("Hello, world6!");
 }, null, 1); // Exceeds the worker capacity, so it will be queued.
+
