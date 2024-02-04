@@ -45,12 +45,29 @@ const worker = (name: string, manager: WorkerManager) : Worker => {
 
 export const workerManager = (platformManagers: {[platformName: string]: PlatformManager}) : WorkerManager => {
     const workers: Worker[] = [];
+    let lock = false;
     return {
         workers: workers,
-        add: (worker: Worker) => {
+        add(worker: Worker) {
+            if (lock) {
+                // Try again after a while
+                setTimeout(() => {
+                    this.add(worker);
+                }, 1000);
+            }
+            lock = true;
             workers.push(worker);
+            lock = false;
         },
-        assign: () => {
+        assign() {
+            if (lock) {
+                // Try again after a while
+                setTimeout(() => {
+                    this.assign();
+                }, 1000);
+            }
+
+            lock = true;
             // Get the highest priority job 
             let score = Infinity;
             let dateAdded = new Date();
@@ -71,6 +88,7 @@ export const workerManager = (platformManagers: {[platformName: string]: Platfor
 
             if (platformManager == null) {
                 console.log("No valid job to assign at the moment.")
+                lock = false;
                 return;
             }
 
@@ -78,6 +96,7 @@ export const workerManager = (platformManagers: {[platformName: string]: Platfor
 
             if (job == null) {
                 console.log("An error may have occurred..")
+                lock = false;
                 return;
             }
             // Assign the job to the worker
@@ -85,6 +104,7 @@ export const workerManager = (platformManagers: {[platformName: string]: Platfor
             if (worker) {
                 worker.doJob(job);
             }
+            lock = false;
         },
         platformManager: platformManagers,
     }

@@ -7,14 +7,23 @@ export interface RequestTracker {
 
 export const requestTracker = (maxRequestCount: number, windowSeconds: number): RequestTracker => {
     let requestCount = 0;
+    let lock = false;
     return {
         maxRequestCount: maxRequestCount,
         windowSeconds: windowSeconds,
-        add: (num: number) => {
+        add(num: number) {
+            if (lock) {
+                // Try again after a while
+                setTimeout(() => {
+                    this.add(num);
+                }, 1000);
+            }
+            lock = true;
             requestCount += num;
             setTimeout(() => {
                 requestCount -= num;
             }, windowSeconds * 1000);
+            lock = false;
         },
         leftover: () => maxRequestCount - requestCount
     }

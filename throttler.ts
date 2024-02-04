@@ -35,6 +35,7 @@ export function throttle<T, U> (
     const pm = platformManagers[platform];
     const job : Job = { fn, arg, niceness, expectedCalls, tracker: pm.requestTracker, addedTime: new Date()};
     pm.add(job);
+    wm.assign(); // See if there are any workers available to do the job.
 
     return fn(arg);
 }
