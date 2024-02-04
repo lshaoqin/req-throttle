@@ -1,5 +1,5 @@
 # req-throttle
-A basic request throttler in TypeScript to schedule API requests with the constraints of limited workers and API rate limits.
+A basic request throttler in TypeScript to schedule API requests to help manage constraints of limited workers and API rate limits.
 
 ## Design
 - [`throttle()`](https://github.com/lshaoqin/req-throttle/blob/main/throttler.ts) method takes in an activity and converts it into a Job. The Job is assigned to a PlatformManager based on which platform it makes requests to.
